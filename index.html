@@ -1,1 +1,306 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Interventions — Tableau de bord</title>
+  <style>
+    :root {
+      --bg: #f5f5f3;
+      --surface: #ffffff;
+      --border: rgba(0,0,0,0.12);
+      --text: #1a1a18;
+      --muted: #6b6b66;
+      --accent: #185FA5;
+      --accent-light: #E6F1FB;
+      --success: #3B6D11;
+      --success-light: #EAF3DE;
+      --radius: 10px;
+      --radius-sm: 6px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 15px;
+      line-height: 1.6;
+    }
+    header {
+      background: var(--surface);
+      border-bottom: 0.5px solid var(--border);
+      padding: 1rem 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+    header h1 { font-size: 18px; font-weight: 500; }
+    header p { font-size: 13px; color: var(--muted); }
+    #status {
+      font-size: 12px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      background: var(--accent-light);
+      color: var(--accent);
+      white-space: nowrap;
+    }
+    #status.ok { background: var(--success-light); color: var(--success); }
+    #status.error { background: #FCEBEB; color: #A32D2D; }
 
+    main { max-width: 960px; margin: 0 auto; padding: 2rem 1.5rem; }
+
+    .config-card {
+      background: var(--surface);
+      border: 0.5px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.25rem 1.5rem;
+      margin-bottom: 2rem;
+    }
+    .config-card h2 { font-size: 14px; font-weight: 500; color: var(--muted); margin-bottom: 0.75rem; letter-spacing: 0.04em; text-transform: uppercase; }
+    .config-row { display: flex; gap: 0.75rem; align-items: flex-end; flex-wrap: wrap; }
+    .config-row label { font-size: 13px; color: var(--muted); display: block; margin-bottom: 4px; }
+    .config-row input {
+      border: 0.5px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 7px 10px;
+      font-size: 14px;
+      background: var(--bg);
+      color: var(--text);
+      width: 260px;
+    }
+    .config-row input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+    button {
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: var(--radius-sm);
+      padding: 8px 18px;
+      font-size: 14px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    button:hover { opacity: 0.9; }
+
+    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 2rem; }
+    .stat {
+      background: var(--surface);
+      border: 0.5px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1rem 1.25rem;
+    }
+    .stat-label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px; }
+    .stat-value { font-size: 26px; font-weight: 500; }
+
+    .section { margin-bottom: 2rem; }
+    .section h2 { font-size: 16px; font-weight: 500; margin-bottom: 1rem; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: var(--surface);
+      border-radius: var(--radius);
+      overflow: hidden;
+      border: 0.5px solid var(--border);
+      font-size: 14px;
+    }
+    thead { background: var(--bg); }
+    th {
+      text-align: left;
+      padding: 10px 14px;
+      font-weight: 500;
+      font-size: 12px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      border-bottom: 0.5px solid var(--border);
+    }
+    td { padding: 10px 14px; border-bottom: 0.5px solid var(--border); }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--bg); }
+
+    .badge {
+      display: inline-block;
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 20px;
+      background: var(--accent-light);
+      color: var(--accent);
+      font-weight: 500;
+    }
+    .empty { text-align: center; padding: 2rem; color: var(--muted); font-size: 14px; }
+
+    @media (max-width: 600px) {
+      header { flex-direction: column; align-items: flex-start; padding: 1rem; }
+      main { padding: 1rem; }
+      .config-row input { width: 100%; }
+      table { font-size: 12px; }
+      th, td { padding: 8px 10px; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>Interventions — Tableau de bord</h1>
+    <p>Données en direct depuis Grist</p>
+  </div>
+  <span id="status">En attente…</span>
+</header>
+
+<main>
+
+  <div class="config-card">
+    <h2>Configuration Grist</h2>
+    <div class="config-row">
+      <div>
+        <label for="docId">ID du document</label>
+        <input id="docId" type="text" placeholder="ex: abc123xyz" value="" />
+      </div>
+      <div>
+        <label for="apiKey">Clé API (optionnel, si non public)</label>
+        <input id="apiKey" type="password" placeholder="Bearer token" value="" />
+      </div>
+      <div>
+        <label>&nbsp;</label>
+        <button onclick="loadAll()">Charger les données</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><div class="stat-label">Interventions</div><div class="stat-value" id="countInterv">—</div></div>
+    <div class="stat"><div class="stat-label">Utilisateurs</div><div class="stat-value" id="countUsers">—</div></div>
+    <div class="stat"><div class="stat-label">Services</div><div class="stat-value" id="countServices">—</div></div>
+  </div>
+
+  <div class="section">
+    <h2>Interventions</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Quoi</th>
+          <th>Intervenant</th>
+          <th>Service</th>
+        </tr>
+      </thead>
+      <tbody id="tbodyInterv"><tr><td colspan="4" class="empty">Configurez et chargez les données ci-dessus.</td></tr></tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <h2>Utilisateurs</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Nom</th>
+          <th>Prénom</th>
+          <th>Service</th>
+          <th>Adresse</th>
+        </tr>
+      </thead>
+      <tbody id="tbodyUsers"><tr><td colspan="4" class="empty">Configurez et chargez les données ci-dessus.</td></tr></tbody>
+    </table>
+  </div>
+
+</main>
+
+<script>
+const BASE = "https://docs.getgrist.com/api/docs";
+
+function setStatus(msg, type = "") {
+  const s = document.getElementById("status");
+  s.textContent = msg;
+  s.className = type;
+}
+
+async function fetchTable(docId, table, apiKey) {
+  const url = `${BASE}/${docId}/tables/${table}/records`;
+  const headers = { "Accept": "application/json" };
+  if (apiKey) headers["Authorization"] = `Bearer ${apiKey}`;
+  const res = await fetch(url, { headers });
+  if (!res.ok) throw new Error(`Erreur ${res.status} pour la table ${table}`);
+  const data = await res.json();
+  return data.records;
+}
+
+function formatDate(val) {
+  if (!val) return "—";
+  // Grist stocke les dates en secondes Unix
+  const d = new Date(val * 1000);
+  return isNaN(d) ? val : d.toLocaleDateString("fr-FR");
+}
+
+async function loadAll() {
+  const docId = document.getElementById("docId").value.trim();
+  const apiKey = document.getElementById("apiKey").value.trim();
+  if (!docId) { alert("Veuillez saisir l'ID du document Grist."); return; }
+
+  setStatus("Chargement…");
+  try {
+    const [intervRecords, userRecords] = await Promise.all([
+      fetchTable(docId, "Interventions", apiKey),
+      fetchTable(docId, "Utilisateurs", apiKey)
+    ]);
+
+    // Index utilisateurs par id
+    const userMap = {};
+    userRecords.forEach(r => { userMap[r.id] = r.fields; });
+
+    // Stats
+    const services = new Set(userRecords.map(r => r.fields.Services).filter(Boolean));
+    document.getElementById("countInterv").textContent = intervRecords.length;
+    document.getElementById("countUsers").textContent = userRecords.length;
+    document.getElementById("countServices").textContent = services.size;
+
+    // Table Interventions
+    const tbI = document.getElementById("tbodyInterv");
+    if (intervRecords.length === 0) {
+      tbI.innerHTML = `<tr><td colspan="4" class="empty">Aucune intervention trouvée.</td></tr>`;
+    } else {
+      tbI.innerHTML = intervRecords.map(r => {
+        const f = r.fields;
+        const user = userMap[f.Qui] || {};
+        const nom = user.Nom || user.Prenom
+          ? `${user.Prenom || ""} ${user.Nom || ""}`.trim()
+          : (f.Qui ? `#${f.Qui}` : "—");
+        const service = user.Services
+          ? `<span class="badge">${user.Services}</span>`
+          : "—";
+        return `<tr>
+          <td>${formatDate(f.Date)}</td>
+          <td>${f.Quoi || "—"}</td>
+          <td>${nom}</td>
+          <td>${service}</td>
+        </tr>`;
+      }).join("");
+    }
+
+    // Table Utilisateurs
+    const tbU = document.getElementById("tbodyUsers");
+    if (userRecords.length === 0) {
+      tbU.innerHTML = `<tr><td colspan="4" class="empty">Aucun utilisateur trouvé.</td></tr>`;
+    } else {
+      tbU.innerHTML = userRecords.map(r => {
+        const f = r.fields;
+        return `<tr>
+          <td>${f.Nom || "—"}</td>
+          <td>${f.Prenom || "—"}</td>
+          <td>${f.Services ? `<span class="badge">${f.Services}</span>` : "—"}</td>
+          <td>${f.Adresse || "—"}</td>
+        </tr>`;
+      }).join("");
+    }
+
+    setStatus(`Mis à jour — ${new Date().toLocaleTimeString("fr-FR")}`, "ok");
+  } catch (e) {
+    setStatus("Erreur de chargement", "error");
+    console.error(e);
+    alert(e.message);
+  }
+}
+</script>
+</body>
+</html>
